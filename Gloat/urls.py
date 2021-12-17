@@ -15,7 +15,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from Basic_Matcher import views
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('candidate_finder', views.candidate_finder)
 ]
