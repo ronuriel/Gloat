@@ -39,8 +39,8 @@ def get_job(request_body_json):
         jobs_with_same_title = Job.objects.filter(job_title=title).all()
         if len(jobs_with_same_title) > 0:
             for job_with_same_title in jobs_with_same_title:
-                job_with_same_title = set(job_with_same_title.job_skills.all())
-                if skills_set == job_with_same_title:
+                skills_of_job_with_same_title = set(job_with_same_title.job_skills.all())
+                if skills_set == skills_of_job_with_same_title:
                     return {'exists': True,
                             'job': job_with_same_title}
 
@@ -51,37 +51,48 @@ def get_job(request_body_json):
             'job': job}
 
 
+def get_best_candidates_json(best_candidates):
+    best_candidates_json = []
+    for candidate in best_candidates:
+        best_candidates_json.append(get_candidate_json(candidate))
+
+    return best_candidates_json
+
+
 @api_view(['GET'])
 def candidate_finder(request):
-    request_body_json = json.loads(request.body)  # can be crashed?
+    request_body_json = json.loads(request.body)  # can be crashed?, think of change to parameters
 
     valid_body = body_validation(request_body_json)
     if valid_body['valid_body'] is False:
         return JsonResponse(valid_body['response'], status=status.HTTP_400_BAD_REQUEST)
 
-    #job = get_job(request_body_json)
-    job_title = request_body_json[JOB_TITLE_KEY]
-    corresponding_candidates_title = Candidate.objects.filter(candidate_title=job_title).all()
+    job_creation = get_job(request_body_json)
+    job = job_creation['job']
 
-    job_skills = request_body_json[JOB_SKILLS_KEY]
+    if job_creation['exists'] is True:
+        job_best_candidates = job.job_best_candidates.all()
+        return JsonResponse({'best_candidates': get_best_candidates_json(job_best_candidates)})
+    else:
+        job_title = request_body_json[JOB_TITLE_KEY]
+        corresponding_candidates_title = Candidate.objects.filter(candidate_title=job_title).all()
 
-    best_candidates = []
-    max_skills_intersection_length = 0
-    for candidate in corresponding_candidates_title:
-        candidate_skills = get_candidate_skills(candidate)
-        current_skills_intersection_length = get_intersection_length(job_skills, candidate_skills)
-        if current_skills_intersection_length > max_skills_intersection_length:
-            best_candidates = [candidate]
-            max_skills_intersection_length = current_skills_intersection_length
+        job_skills = request_body_json[JOB_SKILLS_KEY]
 
-        elif current_skills_intersection_length == max_skills_intersection_length:
-            best_candidates.append(candidate)
+        best_candidates = []
+        max_skills_intersection_length = 0
+        for candidate in corresponding_candidates_title:
+            candidate_skills = get_candidate_skills(candidate)
+            current_skills_intersection_length = get_intersection_length(job_skills, candidate_skills)
+            if current_skills_intersection_length > max_skills_intersection_length:
+                best_candidates = [candidate]
+                max_skills_intersection_length = current_skills_intersection_length
 
-    best_candidates_json = []
-    for candidate in best_candidates:
-        best_candidates_json.append(get_candidate_json(candidate))
+            elif current_skills_intersection_length == max_skills_intersection_length:
+                best_candidates.append(candidate)
 
-    return JsonResponse({'best_candidates': best_candidates_json})
+        job.job_best_candidates.set(best_candidates)
+        return JsonResponse({'best_candidates': get_best_candidates_json(best_candidates)})
 
 
 def body_validation(request_job_json):

@@ -19,6 +19,7 @@ class Candidate(models.Model):
 class Job(models.Model):
     job_title = models.CharField(max_length=50)
     job_skills = models.ManyToManyField(Skill)
+    job_best_candidates = models.ManyToManyField(Candidate)
 
     def __str__(self):
         return self.job_title
