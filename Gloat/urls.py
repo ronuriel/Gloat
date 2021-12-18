@@ -20,5 +20,5 @@ from Basic_Matcher import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('candidate_finder', views.candidate_finder_3)
+    path('candidate_finder', views.candidate_finder, name='candidate_finder')
 ]
